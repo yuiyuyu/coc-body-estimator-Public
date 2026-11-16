@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CoC 身長・体重レンジ推定</title>
+<style>
+:root{color-scheme:dark;--bg:#11131a;--panel:#1b1e29;--panel2:#242838;--line:#34394c;--text:#f3f4f8;--muted:#aeb4c6;--accent:#b9a0ff;--accent2:#8ed9c2}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 15% 0%,#29233d 0,transparent 38%),var(--bg);color:var(--text);font-family:system-ui,-apple-system,"Segoe UI",sans-serif;line-height:1.55}
+main{max-width:880px;margin:0 auto;padding:34px 18px 56px}.eyebrow{letter-spacing:.18em;font-size:11px;color:var(--accent);font-weight:700}.head{display:flex;justify-content:space-between;gap:14px;align-items:flex-start}h1{font-size:clamp(25px,5vw,38px);line-height:1.2;margin:8px 0}.sub{color:var(--muted);max-width:600px;margin:8px 0 24px}.pill{border:1px solid var(--line);border-radius:99px;padding:6px 10px;font-size:11px;color:var(--accent2);white-space:nowrap}
+.panel{background:linear-gradient(145deg,rgba(31,34,47,.97),rgba(24,27,38,.97));border:1px solid var(--line);border-radius:18px;padding:22px;margin:16px 0;box-shadow:0 14px 40px #0002}
+h2{font-size:16px;margin:0 0 18px}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px}.field{display:flex;flex-direction:column;gap:7px}.field.full{grid-column:1/-1}label{font-size:12px;color:var(--muted);font-weight:650}input,select{width:100%;background:#11141d;color:var(--text);border:1px solid var(--line);border-radius:10px;padding:12px 13px;font:inherit;outline:none}input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 3px #b9a0ff20}.hint{font-size:11px;color:var(--muted)}
+button{border:0;background:var(--accent);color:#171321;border-radius:11px;padding:13px 18px;font:700 14px inherit;cursor:pointer;width:100%;margin-top:18px}button:hover{filter:brightness(1.07)}
+.results{display:none}.results.show{display:block}.resultgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.metric{background:var(--panel2);border:1px solid var(--line);border-radius:14px;padding:17px}.metric small{color:var(--muted)}.value{font-size:clamp(28px,6vw,38px);font-weight:750;letter-spacing:-.04em;margin:4px 0}.unit{font-size:14px;color:var(--muted);font-weight:500}.desc{font-size:12px;color:var(--muted)}.tag{display:inline-block;margin-top:10px;padding:4px 8px;border-radius:99px;background:#b9a0ff1a;color:var(--accent);font-size:11px}
+.note{font-size:12px;color:var(--muted);margin-top:14px}.formula{background:#11141d;border-radius:10px;padding:13px;font-size:12px;color:var(--muted)}.footer{font-size:11px;color:#858ca1;margin:20px 2px}.actions{display:flex;gap:10px}.actions button{flex:1}.secondary{background:var(--panel2);color:var(--text);border:1px solid var(--line)}
+@media(max-width:560px){.grid,.resultgrid{grid-template-columns:1fr}.head{display:block}.pill{display:inline-block;margin-top:8px}.panel{padding:17px}}
+</style>
+</head>
+<body>
+<main>
+  <div class="eyebrow">CALL OF CTHULHU · CHARACTER TOOL</div>
+  <div class="head"><div><h1>身長・体重レンジ推定</h1><p class="sub">キャラクターの能力値と出身地域から、設定づくりに使える体格の目安を算出します。</p></div><span class="pill">6版 / 7版 対応</span></div>
+
+  <section class="panel">
+    <h2>01　キャラクター情報</h2>
+    <div class="grid">
+      <div class="field"><label for="edition">ルール</label><select id="edition"><option value="6">CoC 6版</option><option value="7">CoC 7版</option></select></div>
+      <div class="field"><label for="str">STR</label><input id="str" type="number" min="1" max="100" value="12"></div>
+      <div class="field"><label for="con">CON</label><input id="con" type="number" min="1" max="100" value="12"></div>
+      <div class="field"><label for="siz">SIZ</label><input id="siz" type="number" min="1" max="100" value="13"></div>
+      <div class="field"><label for="sex">体格参照区分</label><select id="sex"><option value="female">女性統計を参照</option><option value="male">男性統計を参照</option><option value="neutral">男女の中間値を参照</option></select><span class="hint"></div>
+      <div class="field"><label for="age">年齢</label><input id="age" type="number" min="1" max="110" value="25"><span class="hint">成人前・高齢の場合は推定幅を広めに表示します。</span></div>
+      <div class="field full"><label for="region">出身地域（基準データ）</label><select id="region">
+        <option value="jp">日本</option><option value="us">アメリカ</option><option value="uk">イギリス</option><option value="nl">オランダ</option><option value="global">世界参考値（19歳平均）</option>
+      </select><span class="hint">国・地域は今後追加可能。現段階では代表的な参照地域を収録しています。</span></div>
+    </div>
+    <button id="calc">身長・体重の範囲を推定する</button>
+  </section>
+
+  <section class="panel results" id="results" aria-live="polite">
+    <h2>02　推定結果</h2>
+    <div class="resultgrid">
+      <div class="metric"><small>推定身長レンジ</small><div class="value" id="height">—</div><div class="desc">cm</div><span class="tag" id="heightTag">地域・年齢補正済み</span></div>
+      <div class="metric"><small>推定体重レンジ</small><div class="value" id="weight">—</div><div class="desc">kg</div><span class="tag" id="weightTag">体格・筋力補正済み</span></div>
+    </div>
+    <p class="note" id="interpretation"></p>
+    <div class="formula" id="details"></div>
+    <div class="actions"><button class="secondary" id="copy">結果をコピー</button><button class="secondary" id="reset">入力をリセット</button></div>
+  </section>
+
+  <section class="panel">
+    <h2>03　計算モデルについて</h2>
+    <div class="formula">
+      <b>試作版の仮説モデル</b><br>
+      ・SIZは6版値を5倍して7版相当スケールに統一（7版値はそのまま）。<br>
+      ・身長は地域・参照区分の平均を基準に、SIZで小幅に補正。<br>
+      ・体重は推定身長とBMIの幅を土台に、SIZ・STR・CONで補助補正。<br>
+      ・年齢は成人後の身長変化を簡易補正。成人前は成長差を考慮して幅を拡大。
+    </div>
+    <p class="note">重要：CoC公式にSIZから身長・体重を換算する規則はありません。この計算式は創作用の独自仮説であり、実証済みの個人予測モデルではありません。STR・CONから筋肉量や体脂肪率を直接特定することもできません。</p>
+  </section>
+  <p class="footer">参照データ：日本は厚生労働省「令和6年 国民健康・栄養調査」の20〜29歳平均（男性171.6cm / 女性157.8cm）を採用。その他の国・世界参考値はNCD-RisC 2019年の19歳推定平均を採用。参照年齢が異なるため、地域間比較は概算です。</p>
+  <p class="footer">出典：<a href="https://www.mhlw.go.jp/content/001693908.pdf" target="_blank" rel="noreferrer">厚生労働省 令和6年国民健康・栄養調査</a> ／ <a href="https://ncdrisc.org/data-downloads-height.html" target="_blank" rel="noreferrer">NCD-RisC Height Data</a></p>
+</main>
+<script>
+const regions={
+ jp:{label:"日本",male:171.6,female:157.8,neutral:164.7,bmi:21.8},
+ us:{label:"アメリカ",male:176.9,female:163.3,neutral:170.1,bmi:26.0},
+ uk:{label:"イギリス",male:178.2,female:163.9,neutral:171.05,bmi:25.5},
+ nl:{label:"オランダ",male:183.8,female:170.4,neutral:177.1,bmi:24.8},
+ global:{label:"世界参考値",male:173.1,female:160.9,neutral:167.0,bmi:23.5}
+};
+const $=id=>document.getElementById(id);
+function range(a,b,unit){return `${a.toFixed(0)}–${b.toFixed(0)} ${unit}`}
+function calculate(){
+ const edition=+$("edition").value, siz=+$("siz").value, str=+$("str").value, con=+$("con").value, age=+$("age").value, sex=$("sex").value, region=regions[$("region").value];
+ const max=edition===6?18:90, min=edition===6?3:15;
+ if([siz,str,con,age].some(v=>!Number.isFinite(v))||siz<min||siz>max||str<min||str>max||con<min||con>max||age<1||age>110){alert(`入力値を確認してください。${edition}版の能力値は${min}〜${max}の範囲で入力してください。`);return}
+ const s=edition===6?siz*5:siz, st=edition===6?str*5:str, cn=edition===6?con*5:con;
+ const base=region[sex];
+ // Prototype assumptions, deliberately conservative: SIZ changes stature modestly.
+ let ageAdj=age<18?-(18-age)*0.45:age>45?-Math.min(4,(age-45)*0.12):0;
+ const center=base+(s-65)*0.20+ageAdj;
+ let hSpread=age<18?4.5:age>=70?3:2.0;
+ const hLo=Math.max(90,center-hSpread),hHi=Math.min(230,center+hSpread);
+ const sizBmi=(s-65)*0.035, strengthBmi=(st-50)*0.012, conBmi=(cn-50)*0.008;
+ const bmiCenter=region.bmi+sizBmi+strengthBmi+conBmi;
+ let bmiSpread=age<18?2.5:1.5;
+ const wLo=(hLo/100)**2*Math.max(14,bmiCenter-bmiSpread);
+ const wHi=(hHi/100)**2*Math.min(38,bmiCenter+bmiSpread);
+ $("height").textContent=`${Math.round(hLo)}–${Math.round(hHi)}`;
+ $("weight").textContent=`${Math.round(wLo)}–${Math.round(wHi)}`;
+ const build=st>=65?"筋力高め":st<=35?"筋力低め":"筋力は中間域";
+ const constitution=cn>=65?"CON高め":cn<=35?"CON低め":"CONは中間域";
+ $("interpretation").textContent=`${region.label}の基準値を使用。${build}・${constitution}として体重レンジを補助調整しています。`;
+ $("details").innerHTML=`共通スケール：SIZ ${s.toFixed(0)} / STR ${st.toFixed(0)} / CON ${cn.toFixed(0)}<br>身長中心値：約${center.toFixed(1)}cm ／ BMI中心値：約${bmiCenter.toFixed(1)}<br>※従来より狭いレンジで表示する試作設定です。個人の実測値を保証するものではありません。`;
+ $("results").classList.add("show");
+ $("results").scrollIntoView({behavior:"smooth",block:"start"});
+}
+$("edition").addEventListener("change",()=>{$("sizHint").textContent=$("edition").value==="6"?"6版：通常の能力値（目安 8〜18）":"7版：通常の能力値（目安 40〜90）";$("siz").value=$("edition").value==="6"?13:65;$("str").value=$("edition").value==="6"?12:60;$("con").value=$("edition").value==="6"?12:60});
+$("calc").addEventListener("click",calculate);
+$("copy").addEventListener("click",async()=>{const text=`身長：${$("height").textContent}cm\n体重：${$("weight").textContent}kg\n${$("interpretation").textContent}`;try{await navigator.clipboard.writeText(text);$("copy").textContent="コピーしました！"}catch(e){alert(text)}});
+$("reset").addEventListener("click",()=>{ $("edition").value="6";$("edition").dispatchEvent(new Event("change"));$("age").value=25;$("sex").value="female";$("region").value="jp";$("results").classList.remove("show");});
+</script>
+</body>
+</html>
